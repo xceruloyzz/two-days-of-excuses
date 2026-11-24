@@ -1,22 +1,22 @@
 """Two Days of Excuses - a one-line AI excuse for a missed deadline.
 
-Running this program writes the entry line to /output/entry.txt,
-byte for byte the same on every run. The line is validated against
-the entry gate (a single line, 1-200 characters, not whitespace
-only) before it is written, and the write is atomic: the text goes
-to a temporary file first and is then renamed into place, so the
-output is never left half-written.
+Running this program writes the entry line to entry.txt inside the
+output folder, byte for byte the same on every run. The line is
+checked against the entry gate (a single line, 1-200 characters,
+not whitespace only) before it is written. The write goes straight
+to the final file: nothing temporary is created in the output
+folder, so the folder ends up containing exactly one file.
 """
 
 import os
-import tempfile
 
 ENTRY = (
     "I'm not two days late; I consulted myself about the deadline, "
     "and I confirmed with 98% confidence that it was Thursday."
 )
 
-OUTPUT_PATH = "/output/entry.txt"
+OUTPUT_DIR = os.environ.get("MAKEFUN_OUTPUT_DIR", "/output")
+OUTPUT_PATH = os.path.join(OUTPUT_DIR, "entry.txt")
 MAX_ENTRY_CHARS = 200
 
 
@@ -34,20 +34,10 @@ def validate_entry(text: str) -> str:
 
 
 def write_entry(text: str, path: str) -> None:
-    """Write text to path atomically as UTF-8 with no trailing newline."""
-    directory = os.path.dirname(path)
-    os.makedirs(directory, exist_ok=True)
-    fd, tmp_path = tempfile.mkstemp(dir=directory, prefix=".entry-", suffix=".tmp")
-    try:
-        with os.fdopen(fd, "w", encoding="utf-8", newline="") as handle:
-            handle.write(text)
-        os.replace(tmp_path, path)
-    except BaseException:
-        try:
-            os.unlink(tmp_path)
-        except OSError:
-            pass
-        raise
+    """Write text to path directly as UTF-8 with no trailing newline."""
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8", newline="") as handle:
+        handle.write(text)
 
 
 def main() -> None:
